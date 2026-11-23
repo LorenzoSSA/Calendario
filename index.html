@@ -66,6 +66,35 @@ button:disabled{opacity:.4;cursor:default}
 .key b{color:var(--red)}
 .foot{margin-top:18px;font-size:13px;color:var(--mut)}
 .fuori{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--mut);margin-bottom:12px;display:none}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);padding:22px;width:min(420px,calc(100vw - 28px))}
+dialog::backdrop{background:rgba(10,14,30,.45)}
+dialog h2{font:700 22px/1.2 Archivo,sans-serif;margin:0 0 14px}
+dialog label{display:block;font-weight:700;font-size:15px;margin:12px 0 4px}
+dialog label span{font-weight:400;color:var(--mut)}
+dialog select,dialog input{width:100%;font:inherit;font-size:16px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--btn);color:var(--ink);padding:0 10px}
+dialog p{font-size:14px;color:var(--mut);margin:14px 0 0}
+.dlgb{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+#stampa{display:none}
+@media print{
+  @page{size:A4 landscape;margin:9mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  :root{color-scheme:light;--bg:#fff;--ink:#16181d;--mut:#555;--navy:#1F3864;--line:#c4c7cf;--hour:#f2f2f2;--pause:#e7e6e6;--red:#c00000;--rh:10.6mm}
+  body{background:#fff;font-size:11pt}
+  .wrap,dialog{display:none!important}
+  #stampa{display:block}
+  .pg{break-after:page;page-break-after:always}
+  .pg:last-child{break-after:auto;page-break-after:auto}
+  .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3mm}
+  .ph h2{font:700 17pt Archivo,sans-serif;color:#1F3864;margin:0}
+  .ph span{font-size:11pt}
+  .grid{display:grid!important;border-radius:4px;break-inside:avoid}
+  .hd{padding:4px}
+  .b .s{font-size:10.5pt}.b .t,.b .a{font-size:9pt}
+  .legend{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:2mm 6mm;margin-top:3mm}
+  .lg{font-size:8.5pt;gap:6px}.sw{width:38px;height:18px;font-size:8pt}
+  .key{margin-top:2mm;font-size:8pt;gap:4px 18px}
+}
 @media(max-width:760px){.grid{display:none}.list{display:block}.legend{grid-template-columns:1fr}}
 </style>
 </head>
@@ -78,6 +107,7 @@ button:disabled{opacity:.4;cursor:default}
     <button id="oggi">Oggi</button>
     <button class="arrow" id="next" aria-label="Settimana successiva">›</button>
     <input type="date" id="vai" aria-label="Vai alla settimana di una data">
+    <button id="pdf">PDF</button>
   </div>
 </header>
 <div class="fuori" id="fuori"></div>
@@ -86,9 +116,21 @@ button:disabled{opacity:.4;cursor:default}
 <div class="key"><span><b>*</b> = lezione spostata o extra</span><span><b>barrato</b> = lezione annullata</span><span>grigio = pausa / vacanza</span></div>
 <div class="foot" id="foot"></div>
 </div>
+<dialog id="dlgpdf" aria-labelledby="dlgt">
+  <form id="pdfform">
+    <h2 id="dlgt">Esporta in PDF</h2>
+    <label for="pdfda">Dalla settimana</label>
+    <select id="pdfda"></select>
+    <label for="pdfn">Numero di settimane <span id="pdfmax"></span></label>
+    <input type="number" id="pdfn" min="1" value="1" inputmode="numeric">
+    <p>Una settimana per pagina, A4 orizzontale. Nella finestra di stampa scegli <b>Salva come PDF</b> come stampante.</p>
+    <div class="dlgb"><button type="button" id="pdfno">Annulla</button><button type="submit" class="pri">Crea PDF</button></div>
+  </form>
+</dialog>
+<div id="stampa"></div>
 <script>
 {
-const DATI = {"corsi": [{"s": "LPCS", "nome": "Laboratory of Photonic Components and Systems", "doc": "Cossu", "col": "#9DC3E6", "stato": "Orario definito"}, {"s": "AON", "nome": "Advanced Optical Networking", "doc": "Sambo", "col": "#A9D18E", "stato": "Orario definito"}, {"s": "CTDT", "nome": "Communication Theory and Digital Transmission", "doc": "Forestieri", "col": "#F4B183", "stato": "Orario definito"}, {"s": "DOCS", "nome": "Design of Optical Communication Systems", "doc": "Ciaramella", "col": "#FFD966", "stato": "Orario da definire"}, {"s": "TNET", "nome": "Telecommunication Networks", "doc": "Castoldi", "col": "#C9A0DC", "stato": "Orario da definire"}], "sett": [{"lun": "2026-11-16", "g": [{"d": "2026-11-16", "p": null, "l": []}, {"d": "2026-11-17", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-11-18", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "", "t": "c", "n": "Lezione cancellata"}]}, {"d": "2026-11-19", "p": null, "l": []}, {"d": "2026-11-20", "p": null, "l": []}]}, {"lun": "2026-11-23", "g": [{"d": "2026-11-23", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Studio", "t": "n", "n": ""}]}, {"d": "2026-11-24", "p": null, "l": [{"s": "AON", "i": "09:00", "f": "11:00", "a": "Grey", "t": "x", "n": "Esempio: lezione di martedì anticipata alle 9 (cancellare se non serve)"}]}, {"d": "2026-11-25", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Grey", "t": "x", "n": ""}, {"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-11-26", "p": null, "l": []}, {"d": "2026-11-27", "p": null, "l": []}]}, {"lun": "2026-11-30", "g": [{"d": "2026-11-30", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-01", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-02", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Blue", "t": "x", "n": ""}, {"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-03", "p": null, "l": []}, {"d": "2026-12-04", "p": null, "l": []}]}, {"lun": "2026-12-07", "g": [{"d": "2026-12-07", "p": "Ponte", "l": []}, {"d": "2026-12-08", "p": "Ponte", "l": []}, {"d": "2026-12-09", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-10", "p": null, "l": [{"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-11", "p": null, "l": []}]}, {"lun": "2026-12-14", "g": [{"d": "2026-12-14", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-15", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-16", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-17", "p": null, "l": [{"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-18", "p": null, "l": []}]}, {"lun": "2026-12-21", "g": [{"d": "2026-12-21", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-22", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-23", "p": "Pausa invernale", "l": []}, {"d": "2026-12-24", "p": "Pausa invernale", "l": []}, {"d": "2026-12-25", "p": "Pausa invernale", "l": []}]}, {"lun": "2026-12-28", "g": [{"d": "2026-12-28", "p": "Pausa invernale", "l": []}, {"d": "2026-12-29", "p": "Pausa invernale", "l": []}, {"d": "2026-12-30", "p": "Pausa invernale", "l": []}, {"d": "2026-12-31", "p": "Pausa invernale", "l": []}, {"d": "2027-01-01", "p": "Pausa invernale", "l": []}]}, {"lun": "2027-01-04", "g": [{"d": "2027-01-04", "p": "Pausa invernale", "l": []}, {"d": "2027-01-05", "p": "Pausa invernale", "l": []}, {"d": "2027-01-06", "p": "Pausa invernale", "l": []}, {"d": "2027-01-07", "p": "Pausa invernale", "l": []}, {"d": "2027-01-08", "p": "Pausa invernale", "l": []}]}, {"lun": "2027-01-11", "g": [{"d": "2027-01-11", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-12", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-13", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-14", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Grey", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-15", "p": null, "l": []}]}, {"lun": "2027-01-18", "g": [{"d": "2027-01-18", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-19", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-20", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-21", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-22", "p": null, "l": []}]}, {"lun": "2027-01-25", "g": [{"d": "2027-01-25", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-26", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-27", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-28", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-29", "p": null, "l": []}]}, {"lun": "2027-02-01", "g": [{"d": "2027-02-01", "p": null, "l": []}, {"d": "2027-02-02", "p": null, "l": []}, {"d": "2027-02-03", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-02-04", "p": null, "l": []}, {"d": "2027-02-05", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Blue", "t": "n", "n": ""}]}]}, {"lun": "2027-02-08", "g": [{"d": "2027-02-08", "p": null, "l": []}, {"d": "2027-02-09", "p": null, "l": []}, {"d": "2027-02-10", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-02-11", "p": null, "l": []}, {"d": "2027-02-12", "p": null, "l": []}]}], "agg": "23/11/2026 11:22"};
+const DATI = {"corsi": [{"s": "LPCS", "nome": "Laboratory of Photonic Components and Systems", "doc": "Cossu", "col": "#9DC3E6", "stato": "Orario definito"}, {"s": "AON", "nome": "Advanced Optical Networking", "doc": "Sambo", "col": "#A9D18E", "stato": "Orario definito"}, {"s": "CTDT", "nome": "Communication Theory and Digital Transmission", "doc": "Forestieri", "col": "#F4B183", "stato": "Orario definito"}, {"s": "DOCS", "nome": "Design of Optical Communication Systems", "doc": "Ciaramella", "col": "#FFD966", "stato": "Orario da definire"}, {"s": "TNET", "nome": "Telecommunication Networks", "doc": "Castoldi", "col": "#C9A0DC", "stato": "Orario da definire"}], "sett": [{"lun": "2026-11-16", "g": [{"d": "2026-11-16", "p": null, "l": []}, {"d": "2026-11-17", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-11-18", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "", "t": "c", "n": "Lezione cancellata"}]}, {"d": "2026-11-19", "p": null, "l": []}, {"d": "2026-11-20", "p": null, "l": []}]}, {"lun": "2026-11-23", "g": [{"d": "2026-11-23", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Studio", "t": "n", "n": ""}]}, {"d": "2026-11-24", "p": null, "l": [{"s": "AON", "i": "09:00", "f": "11:00", "a": "Grey", "t": "x", "n": "Esempio: lezione di martedì anticipata alle 9 (cancellare se non serve)"}]}, {"d": "2026-11-25", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Grey", "t": "x", "n": ""}, {"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-11-26", "p": null, "l": []}, {"d": "2026-11-27", "p": null, "l": []}]}, {"lun": "2026-11-30", "g": [{"d": "2026-11-30", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-01", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-02", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Blue", "t": "x", "n": ""}, {"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-03", "p": null, "l": []}, {"d": "2026-12-04", "p": null, "l": []}]}, {"lun": "2026-12-07", "g": [{"d": "2026-12-07", "p": "Ponte", "l": []}, {"d": "2026-12-08", "p": "Ponte", "l": []}, {"d": "2026-12-09", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-10", "p": null, "l": [{"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-11", "p": null, "l": []}]}, {"lun": "2026-12-14", "g": [{"d": "2026-12-14", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-15", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-16", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-17", "p": null, "l": [{"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-18", "p": null, "l": []}]}, {"lun": "2026-12-21", "g": [{"d": "2026-12-21", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-22", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-23", "p": "Pausa invernale", "l": []}, {"d": "2026-12-24", "p": "Pausa invernale", "l": []}, {"d": "2026-12-25", "p": "Pausa invernale", "l": []}]}, {"lun": "2026-12-28", "g": [{"d": "2026-12-28", "p": "Pausa invernale", "l": []}, {"d": "2026-12-29", "p": "Pausa invernale", "l": []}, {"d": "2026-12-30", "p": "Pausa invernale", "l": []}, {"d": "2026-12-31", "p": "Pausa invernale", "l": []}, {"d": "2027-01-01", "p": "Pausa invernale", "l": []}]}, {"lun": "2027-01-04", "g": [{"d": "2027-01-04", "p": "Pausa invernale", "l": []}, {"d": "2027-01-05", "p": "Pausa invernale", "l": []}, {"d": "2027-01-06", "p": "Pausa invernale", "l": []}, {"d": "2027-01-07", "p": "Pausa invernale", "l": []}, {"d": "2027-01-08", "p": "Pausa invernale", "l": []}]}, {"lun": "2027-01-11", "g": [{"d": "2027-01-11", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-12", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-13", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-14", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Grey", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-15", "p": null, "l": []}]}, {"lun": "2027-01-18", "g": [{"d": "2027-01-18", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-19", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-20", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-21", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-22", "p": null, "l": []}]}, {"lun": "2027-01-25", "g": [{"d": "2027-01-25", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-26", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-27", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-28", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-29", "p": null, "l": []}]}, {"lun": "2027-02-01", "g": [{"d": "2027-02-01", "p": null, "l": []}, {"d": "2027-02-02", "p": null, "l": []}, {"d": "2027-02-03", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-02-04", "p": null, "l": []}, {"d": "2027-02-05", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Blue", "t": "n", "n": ""}]}]}, {"lun": "2027-02-08", "g": [{"d": "2027-02-08", "p": null, "l": []}, {"d": "2027-02-09", "p": null, "l": []}, {"d": "2027-02-10", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-02-11", "p": null, "l": []}, {"d": "2027-02-12", "p": null, "l": []}]}], "agg": "23/11/2026 11:31"};
 const GG = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì'];
 const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
 const col = Object.fromEntries(DATI.corsi.map(c => [c.s, c]));
@@ -124,14 +166,14 @@ function blocco(l, k, n){
   return `<div class="b ${l.t}" style="${st}" title="${tip}"><div style="background:${c.col}">${righe}</div></div>`;
 }
 
-function colonna(g){
+function colonna(g, ev = true){
   const ls = g.l;
   const html = ls.map(l => {
     // lezioni sovrapposte: affiancate, come nel PDF
     const same = ls.filter(o => o.i < l.f && o.f > l.i);
     return blocco(l, same.indexOf(l), same.length);
   }).join('');
-  const cls = ['day', g.p ? 'pausa' : '', g.d === oggi ? 'oggi' : ''].join(' ');
+  const cls = ['day', g.p ? 'pausa' : '', ev && g.d === oggi ? 'oggi' : ''].join(' ');
   return `<div class="${cls}">${g.p ? `<div class="pl">${esc(g.p)}</div>` : ''}${html}</div>`;
 }
 
@@ -147,16 +189,21 @@ function elenco(g, i){
   return `<div class="lday ${g.d === oggi ? 'oggi' : ''}"><h3>${GG[i]}<span>${fmtL(g.d)}</span></h3>${g.p && voci ? `<div class="vuoto">${esc(g.p)}</div>` : vuoto}${voci}</div>`;
 }
 
+function griglia(S, ev = true){
+  const head = '<div class="hd">Ora</div>' + S.g.map((g,i) => {
+    const o = ev && g.d === oggi;
+    return `<div class="hd ${o ? 'oggi' : ''}">${GG[i]}<small>${fmt(g.d)}${o ? ' · oggi' : ''}</small></div>`; }).join('');
+  const ore = '<div class="hours">' + Array.from({length:12}, (_,k) =>
+    `<div style="top:calc(${k} * var(--rh))">${String(k+8).padStart(2,'0')}:00</div>`).join('') + '</div>';
+  return `<div class="grid">${head}${ore}${S.g.map(g => colonna(g, ev)).join('')}</div>`;
+}
+
 function disegna(){
   const S = DATI.sett[w];
   const ven = S.g[4].d;
   document.getElementById('range').textContent = `Settimana ${fmtL(S.lun)} – ${fmtL(ven)}`;
-  const head = '<div class="hd">Ora</div>' + S.g.map((g,i) =>
-    `<div class="hd ${g.d === oggi ? 'oggi' : ''}">${GG[i]}<small>${fmt(g.d)}${g.d === oggi ? ' · oggi' : ''}</small></div>`).join('');
-  const ore = '<div class="hours">' + Array.from({length:12}, (_,k) =>
-    `<div style="top:calc(${k} * var(--rh))">${String(k+8).padStart(2,'0')}:00</div>`).join('') + '</div>';
   document.getElementById('cal').innerHTML =
-    `<div class="grid">${head}${ore}${S.g.map(colonna).join('')}</div><div class="list">${S.g.map(elenco).join('')}</div>`;
+    `${griglia(S)}<div class="list">${S.g.map(elenco).join('')}</div>`;
   document.getElementById('prev').disabled = w === 0;
   document.getElementById('next').disabled = w === N - 1;
   document.getElementById('vai').value = S.lun;
@@ -176,9 +223,35 @@ function daHash(){
   return m ? settDi(pd(m[1])) : settDi(new Date());
 }
 
-document.getElementById('legend').innerHTML = DATI.corsi.map(c =>
+const LEGENDA = DATI.corsi.map(c =>
   `<div class="lg"><span class="sw" style="background:${c.col}">${esc(c.s)}</span><span>${esc(c.nome)}${c.doc ? ` <span class="dc">– ${esc(c.doc)}</span>` : ''}${/defin/i.test(c.stato) && /da /i.test(c.stato) ? ` <span class="dc">(${esc(c.stato.toLowerCase())})</span>` : ''}</span></div>`).join('');
+document.getElementById('legend').innerHTML = LEGENDA;
 document.getElementById('foot').textContent = `Aggiornato il ${DATI.agg}`;
+
+// ---- esportazione PDF (stampa: una settimana per pagina A4 orizzontale)
+const dlg = document.getElementById('dlgpdf'), selDa = document.getElementById('pdfda'), nSet = document.getElementById('pdfn');
+selDa.innerHTML = DATI.sett.map((S,i) => `<option value="${i}">${fmtL(S.lun)} – ${fmtL(S.g[4].d)}</option>`).join('');
+const aggN = () => { const max = N - Number(selDa.value); nSet.max = max; if (Number(nSet.value) > max) nSet.value = max;
+  document.getElementById('pdfmax').textContent = `(massimo ${max})`; };
+selDa.addEventListener('change', aggN);
+document.getElementById('pdf').addEventListener('click', () => {
+  selDa.value = w; nSet.value = 1; aggN();
+  if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+});
+document.getElementById('pdfno').addEventListener('click', () => dlg.close ? dlg.close() : dlg.removeAttribute('open'));
+document.getElementById('pdfform').addEventListener('submit', e => {
+  e.preventDefault();
+  const da = Number(selDa.value), n = Math.max(1, Math.min(N - da, Number(nSet.value) || 1));
+  document.getElementById('stampa').innerHTML = DATI.sett.slice(da, da + n).map(S =>
+    `<section class="pg"><div class="ph"><h2>Calendario lezioni</h2><span>Settimana ${fmtL(S.lun)} – ${fmtL(S.g[4].d)}</span></div>
+     ${griglia(S, false)}<div class="legend">${LEGENDA}</div>
+     <div class="key"><span><b>*</b> = lezione spostata o extra</span><span><b>barrato</b> = lezione annullata</span><span>grigio = pausa / vacanza</span><span>Aggiornato il ${DATI.agg}</span></div></section>`).join('');
+  dlg.close ? dlg.close() : dlg.removeAttribute('open');
+  const t = document.title;
+  document.title = `Calendario ${S0(da)}${n > 1 ? ` (${n} settimane)` : ''}`;
+  setTimeout(() => { try { window.print(); } catch (err) {} document.title = t; }, 50);
+});
+const S0 = i => fmt(DATI.sett[i].lun).replace('/', '-') + '-' + DATI.sett[i].lun.slice(0, 4);
 document.getElementById('prev').addEventListener('click', () => vai(w - 1));
 document.getElementById('next').addEventListener('click', () => vai(w + 1));
 document.getElementById('oggi').addEventListener('click', () => vai(settDi(new Date())));
