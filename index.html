@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendario lezioni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: orario di dipartimento, chiaro e pratico, da consultare ogni giorno
+   IDEA: il tabellone settimanale affisso fuori dall'aula
+   PICTURE: la griglia lun-ven 08-20 con i blocchi colorati dei corsi
+   COLOUR and TYPE: bianco, blu notte #1F3864 dell'Excel, i pastelli dei corsi; Archivo + Atkinson Hyperlegible
+   LAYOUT: titolo e navigazione in alto, griglia a tutta larghezza, legenda sotto; su telefono elenco per giorno */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#10131c);--ink:light-dark(#16181d,#e9ebf1);--mut:light-dark(#5d6270,#9aa0ae);
+--navy:light-dark(#1F3864,#2a4a80);--line:light-dark(#d9dce3,#2b3040);--hour:light-dark(#f4f5f8,#171b26);
+--pause:light-dark(#e7e6e6,#262a35);--today:light-dark(#fff8e1,#22263a);--red:light-dark(#b00020,#ff7a85);--pink:#fde2e2;--btn:light-dark(#eef0f5,#1d2230)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Atkinson Hyperlegible",system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1240px;margin:0 auto;padding:clamp(18px,3vw,36px) max(3vw,14px) 40px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 24px;margin-bottom:18px}
+h1{font:700 clamp(28px,4vw,40px)/1.05 Archivo,sans-serif;margin:0;text-wrap:balance;color:var(--ink)}
+.range{font:500 17px/1.3 Archivo,sans-serif;color:var(--mut);margin-top:6px;white-space:nowrap}
+.nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,input[type=date]{font:inherit;font-size:16px;min-height:44px;border:1px solid var(--line);background:var(--btn);color:var(--ink);border-radius:8px;padding:0 14px;cursor:pointer}
+button:hover{border-color:var(--navy)}button:focus-visible,input:focus-visible{outline:3px solid #4a7bd0;outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+.arrow{width:44px;padding:0;font-size:20px}
+.grid{display:grid;grid-template-columns:64px repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.hd{background:var(--navy);color:#fff;text-align:center;padding:8px 4px;font:700 15px/1.2 Archivo,sans-serif}
+.hd small{display:block;font:400 13px/1.3 "Atkinson Hyperlegible",sans-serif;opacity:.85;margin-top:2px}
+.hd.oggi{background:#c98a00}
+.hours,.day{position:relative;height:calc(12 * var(--rh))}
+:root{--rh:54px}
+.hours{background:var(--hour)}
+.hours div{position:absolute;left:0;right:0;height:var(--rh);border-top:1px solid var(--line);font-size:13px;color:var(--mut);text-align:center;padding-top:4px;white-space:nowrap}
+.day{border-left:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--rh) - 1px),var(--line) calc(var(--rh) - 1px),var(--line) var(--rh))}
+.day.oggi{background-color:var(--today)}
+.day.pausa{background:var(--pause)}
+.pl{position:absolute;inset:0;display:grid;place-items:center;font-style:italic;color:var(--mut);text-align:center;padding:8px}
+.b{position:absolute;padding:2px;}
+.b>div{height:100%;border-radius:7px;padding:5px 6px;color:#16181d;text-align:center;display:flex;flex-direction:column;justify-content:center;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.b .s{font:700 15px/1.15 Archivo,sans-serif}.b .t{font-size:13px;white-space:nowrap}.b .a{font-size:13px}
+.b.x .s{color:#b00020}
+.b.c>div{background:var(--pink)!important;color:#b00020;border:1.5px dashed #b00020}
+.b.c .s{text-decoration:line-through}
+.list{display:none}
+.lday{border-top:1px solid var(--line);padding:12px 0}
+.lday h3{font:700 17px/1.2 Archivo,sans-serif;margin:0 0 8px}
+.lday h3 span{font:400 14px "Atkinson Hyperlegible",sans-serif;color:var(--mut);margin-left:6px}
+.lday.oggi h3::after{content:"oggi";margin-left:8px;font:700 12px/1 "Atkinson Hyperlegible";background:#c98a00;color:#fff;border-radius:4px;padding:2px 6px;vertical-align:middle}
+.li{display:grid;grid-template-columns:5.6em 1fr;gap:10px;padding:6px 0;align-items:start}
+.li .tm{font-weight:700;white-space:nowrap;font-size:15px}
+.li .tm small{display:block;font-weight:400;color:var(--mut)}
+.li .bx{border-left:6px solid;padding:2px 0 2px 10px}
+.li .bx b{font-family:Archivo,sans-serif}
+.li.c .bx{color:var(--red)}.li.c .bx b{text-decoration:line-through}
+.li .nm{color:var(--mut);font-size:14px}
+.vuoto{color:var(--mut);font-style:italic;font-size:15px}
+.legend{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px 20px}
+.lg{display:flex;gap:10px;align-items:center;font-size:15px}
+.sw{flex:none;width:52px;height:28px;border-radius:6px;display:grid;place-items:center;font:700 13px Archivo,sans-serif;color:#16181d}
+.lg .dc{color:var(--mut)}
+.key{margin-top:14px;color:var(--mut);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 22px}
+.key b{color:var(--red)}
+.foot{margin-top:18px;font-size:13px;color:var(--mut)}
+.fuori{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--mut);margin-bottom:12px;display:none}
+@media(max-width:760px){.grid{display:none}.list{display:block}.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>Calendario lezioni</h1><div class="range" id="range"></div></div>
+  <div class="nav">
+    <button class="arrow" id="prev" aria-label="Settimana precedente">‹</button>
+    <button id="oggi">Oggi</button>
+    <button class="arrow" id="next" aria-label="Settimana successiva">›</button>
+    <input type="date" id="vai" aria-label="Vai alla settimana di una data">
+  </div>
+</header>
+<div class="fuori" id="fuori"></div>
+<div id="cal"></div>
+<div class="legend" id="legend"></div>
+<div class="key"><span><b>*</b> = lezione spostata o extra</span><span><b>barrato</b> = lezione annullata</span><span>grigio = pausa / vacanza</span></div>
+<div class="foot" id="foot"></div>
+</div>
+<script>
+{
+const DATI = {"corsi": [{"s": "LPCS", "nome": "Laboratory of Photonic Components and Systems", "doc": "Cossu", "col": "#9DC3E6", "stato": "Orario definito"}, {"s": "AON", "nome": "Advanced Optical Networking", "doc": "Sambo", "col": "#A9D18E", "stato": "Orario definito"}, {"s": "CTDT", "nome": "Communication Theory and Digital Transmission", "doc": "Forestieri", "col": "#F4B183", "stato": "Orario definito"}, {"s": "DOCS", "nome": "Design of Optical Communication Systems", "doc": "Ciaramella", "col": "#FFD966", "stato": "Orario da definire"}, {"s": "TNET", "nome": "Telecommunication Networks", "doc": "Castoldi", "col": "#C9A0DC", "stato": "Orario da definire"}], "sett": [{"lun": "2026-11-16", "g": [{"d": "2026-11-16", "p": null, "l": []}, {"d": "2026-11-17", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-11-18", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "", "t": "c", "n": "Lezione cancellata"}]}, {"d": "2026-11-19", "p": null, "l": []}, {"d": "2026-11-20", "p": null, "l": []}]}, {"lun": "2026-11-23", "g": [{"d": "2026-11-23", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Studio", "t": "n", "n": ""}]}, {"d": "2026-11-24", "p": null, "l": [{"s": "AON", "i": "09:00", "f": "11:00", "a": "Grey", "t": "x", "n": "Esempio: lezione di martedì anticipata alle 9 (cancellare se non serve)"}]}, {"d": "2026-11-25", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Grey", "t": "x", "n": ""}, {"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-11-26", "p": null, "l": []}, {"d": "2026-11-27", "p": null, "l": []}]}, {"lun": "2026-11-30", "g": [{"d": "2026-11-30", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-01", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-02", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Blue", "t": "x", "n": ""}, {"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-03", "p": null, "l": []}, {"d": "2026-12-04", "p": null, "l": []}]}, {"lun": "2026-12-07", "g": [{"d": "2026-12-07", "p": "Ponte", "l": []}, {"d": "2026-12-08", "p": "Ponte", "l": []}, {"d": "2026-12-09", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-10", "p": null, "l": [{"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-11", "p": null, "l": []}]}, {"lun": "2026-12-14", "g": [{"d": "2026-12-14", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2026-12-15", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-16", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-17", "p": null, "l": [{"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-18", "p": null, "l": []}]}, {"lun": "2026-12-21", "g": [{"d": "2026-12-21", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2026-12-22", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2026-12-23", "p": "Pausa invernale", "l": []}, {"d": "2026-12-24", "p": "Pausa invernale", "l": []}, {"d": "2026-12-25", "p": "Pausa invernale", "l": []}]}, {"lun": "2026-12-28", "g": [{"d": "2026-12-28", "p": "Pausa invernale", "l": []}, {"d": "2026-12-29", "p": "Pausa invernale", "l": []}, {"d": "2026-12-30", "p": "Pausa invernale", "l": []}, {"d": "2026-12-31", "p": "Pausa invernale", "l": []}, {"d": "2027-01-01", "p": "Pausa invernale", "l": []}]}, {"lun": "2027-01-04", "g": [{"d": "2027-01-04", "p": "Pausa invernale", "l": []}, {"d": "2027-01-05", "p": "Pausa invernale", "l": []}, {"d": "2027-01-06", "p": "Pausa invernale", "l": []}, {"d": "2027-01-07", "p": "Pausa invernale", "l": []}, {"d": "2027-01-08", "p": "Pausa invernale", "l": []}]}, {"lun": "2027-01-11", "g": [{"d": "2027-01-11", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-12", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-13", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-14", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Grey", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-15", "p": null, "l": []}]}, {"lun": "2027-01-18", "g": [{"d": "2027-01-18", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-19", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-20", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-21", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-22", "p": null, "l": []}]}, {"lun": "2027-01-25", "g": [{"d": "2027-01-25", "p": null, "l": [{"s": "LPCS", "i": "09:00", "f": "11:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-26", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}, {"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-01-27", "p": null, "l": [{"s": "AON", "i": "11:00", "f": "13:00", "a": "Grey", "t": "n", "n": ""}]}, {"d": "2027-01-28", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}, {"s": "LPCS", "i": "14:00", "f": "18:00", "a": "Lab", "t": "n", "n": ""}]}, {"d": "2027-01-29", "p": null, "l": []}]}, {"lun": "2027-02-01", "g": [{"d": "2027-02-01", "p": null, "l": []}, {"d": "2027-02-02", "p": null, "l": []}, {"d": "2027-02-03", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-02-04", "p": null, "l": []}, {"d": "2027-02-05", "p": null, "l": [{"s": "CTDT", "i": "09:00", "f": "11:00", "a": "Blue", "t": "n", "n": ""}]}]}, {"lun": "2027-02-08", "g": [{"d": "2027-02-08", "p": null, "l": []}, {"d": "2027-02-09", "p": null, "l": []}, {"d": "2027-02-10", "p": null, "l": [{"s": "CTDT", "i": "14:00", "f": "16:00", "a": "Blue", "t": "n", "n": ""}]}, {"d": "2027-02-11", "p": null, "l": []}, {"d": "2027-02-12", "p": null, "l": []}]}], "agg": "23/11/2026 11:14"};
+const GG = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì'];
+const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const col = Object.fromEntries(DATI.corsi.map(c => [c.s, c]));
+const esc = t => String(t).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const pd = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const fmt = s => { const d = pd(s); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`; };
+const fmtL = s => { const d = pd(s); return `${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}`; };
+const hm = t => { const [h,m] = t.split(':').map(Number); return h + m/60; };
+const lunedi = d => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+const oggi = iso(new Date());
+const N = DATI.sett.length;
+let w = 0;
+
+function settDi(d){
+  // sabato e domenica: mostra la settimana successiva
+  const x = new Date(d); if (x.getDay() === 6) x.setDate(x.getDate()+2); else if (x.getDay() === 0) x.setDate(x.getDate()+1);
+  const l = iso(lunedi(x));
+  const i = DATI.sett.findIndex(s => s.lun === l);
+  if (i >= 0) return i;
+  return l < DATI.sett[0].lun ? 0 : N - 1;
+}
+
+function blocco(l, k, n){
+  const c = col[l.s] || {col:'#DDDDDD', nome:l.s};
+  const t0 = Math.max(hm(l.i), 8), t1 = Math.min(hm(l.f), 20);
+  if (t1 <= t0) return '';
+  const st = `top:calc(${t0-8} * var(--rh));height:calc(${t1-t0} * var(--rh));left:${k/n*100}%;width:${100/n}%`;
+  const tip = esc(`${c.nome || l.s}${c.doc ? ' – ' + c.doc : ''}${l.n ? '\n' + l.n : ''}`);
+  const righe = l.t === 'c'
+    ? `<span class="s">${esc(l.s)}</span><span class="t">annullata</span>`
+    : `<span class="s">${esc(l.s)}${l.t === 'x' ? ' *' : ''}</span><span class="t">${l.i}–${l.f}</span>${l.a ? `<span class="a">${esc(l.a)}</span>` : ''}`;
+  return `<div class="b ${l.t}" style="${st}" title="${tip}"><div style="background:${c.col}">${righe}</div></div>`;
+}
+
+function colonna(g){
+  const ls = g.l;
+  const html = ls.map(l => {
+    // lezioni sovrapposte: affiancate, come nel PDF
+    const same = ls.filter(o => o.i < l.f && o.f > l.i);
+    return blocco(l, same.indexOf(l), same.length);
+  }).join('');
+  const cls = ['day', g.p ? 'pausa' : '', g.d === oggi ? 'oggi' : ''].join(' ');
+  return `<div class="${cls}">${g.p ? `<div class="pl">${esc(g.p)}</div>` : ''}${html}</div>`;
+}
+
+function elenco(g, i){
+  const voci = g.l.map(l => {
+    const c = col[l.s] || {col:'#DDDDDD', nome:''};
+    const info = l.t === 'c' ? 'annullata' : [l.a, l.t === 'x' ? 'spostata / extra' : ''].filter(Boolean).join(' · ');
+    return `<div class="li ${l.t}"><div class="tm">${l.i}<small>${l.f}</small></div>
+      <div class="bx" style="border-color:${c.col}"><b>${esc(l.s)}${l.t === 'x' ? ' *' : ''}</b> ${info ? '· ' + esc(info) : ''}
+      <div class="nm">${esc(c.nome || '')}${c.doc ? ' – ' + esc(c.doc) : ''}${l.n ? '<br>' + esc(l.n) : ''}</div></div></div>`;
+  }).join('');
+  const vuoto = g.p ? `<div class="vuoto">${esc(g.p)}</div>` : (voci ? '' : '<div class="vuoto">Nessuna lezione</div>');
+  return `<div class="lday ${g.d === oggi ? 'oggi' : ''}"><h3>${GG[i]}<span>${fmtL(g.d)}</span></h3>${g.p && voci ? `<div class="vuoto">${esc(g.p)}</div>` : vuoto}${voci}</div>`;
+}
+
+function disegna(){
+  const S = DATI.sett[w];
+  const ven = S.g[4].d;
+  document.getElementById('range').textContent = `Settimana ${fmtL(S.lun)} – ${fmtL(ven)}`;
+  const head = '<div class="hd">Ora</div>' + S.g.map((g,i) =>
+    `<div class="hd ${g.d === oggi ? 'oggi' : ''}">${GG[i]}<small>${fmt(g.d)}${g.d === oggi ? ' · oggi' : ''}</small></div>`).join('');
+  const ore = '<div class="hours">' + Array.from({length:12}, (_,k) =>
+    `<div style="top:calc(${k} * var(--rh))">${String(k+8).padStart(2,'0')}:00</div>`).join('') + '</div>';
+  document.getElementById('cal').innerHTML =
+    `<div class="grid">${head}${ore}${S.g.map(colonna).join('')}</div><div class="list">${S.g.map(elenco).join('')}</div>`;
+  document.getElementById('prev').disabled = w === 0;
+  document.getElementById('next').disabled = w === N - 1;
+  document.getElementById('vai').value = S.lun;
+  const f = document.getElementById('fuori');
+  const l = iso(lunedi(new Date()));
+  if (l < DATI.sett[0].lun || l > DATI.sett[N-1].lun) {
+    f.style.display = 'block';
+    f.textContent = `Il calendario copre le settimane dal ${fmtL(DATI.sett[0].lun)} al ${fmtL(DATI.sett[N-1].g[4].d)}.`;
+  } else f.style.display = 'none';
+  const h = 'w' + S.lun;
+  if (location.hash.slice(1) !== h) try { history.replaceState(null, '', '#' + h); } catch(e) {}
+}
+
+function vai(i){ w = Math.max(0, Math.min(N - 1, i)); disegna(); }
+function daHash(){
+  const m = /^#w(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
+  return m ? settDi(pd(m[1])) : settDi(new Date());
+}
+
+document.getElementById('legend').innerHTML = DATI.corsi.map(c =>
+  `<div class="lg"><span class="sw" style="background:${c.col}">${esc(c.s)}</span><span>${esc(c.nome)}${c.doc ? ` <span class="dc">– ${esc(c.doc)}</span>` : ''}${/defin/i.test(c.stato) && /da /i.test(c.stato) ? ` <span class="dc">(${esc(c.stato.toLowerCase())})</span>` : ''}</span></div>`).join('');
+document.getElementById('foot').textContent = `Aggiornato il ${DATI.agg}`;
+document.getElementById('prev').addEventListener('click', () => vai(w - 1));
+document.getElementById('next').addEventListener('click', () => vai(w + 1));
+document.getElementById('oggi').addEventListener('click', () => vai(settDi(new Date())));
+document.getElementById('vai').addEventListener('change', e => { if (e.target.value) vai(settDi(pd(e.target.value))); });
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') vai(w - 1); else if (e.key === 'ArrowRight') vai(w + 1);
+});
+window.addEventListener('hashchange', () => vai(daHash()));
+vai(daHash());
+}
+</script>
+</body>
+</html>
